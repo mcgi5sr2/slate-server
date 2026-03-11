@@ -3,8 +3,14 @@ name = "slate-server"
 version = "0.1.0"
 edition = "2024"
 
+
+# axum for web serving
+# tokio for async
+# serde for struct<->serde_json
+# sqlx for data store sqlite, macros gives a compile time check against the database scheme
 [dependencies]
 axum = "0.8.8"
 tokio = { version = "1.50.0", features = ["full"] }
 serde = {version = "1.0.228", features = ["derive"] }
 serde_json = "1.0.149"
+sqlx = { version = "0.8.6", features = ["runtime-tokio", "sqlite", "macros"]}
