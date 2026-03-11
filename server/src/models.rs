@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 // Kiosks identify by str named location as id
 // but also str named location `name` to make it clearer to users which location
 pub struct Location {
-    pub id: String, // for the machine god
+    pub id: String,   // for the machine god
     pub name: String, // for humies
 }
 
@@ -13,7 +13,7 @@ pub struct Location {
 // Kiosk will fetch struct to cycle through
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Playlist {
-    pub location_id: String, // whose playlist is this by id
+    pub location_id: String,      // whose playlist is this by id
     pub items: Vec<PlaylistItem>, // ordered list
 }
 
@@ -27,7 +27,7 @@ pub enum PlaylistItem {
     // for web pages, to display in webview
     Url {
         url: String,
-        duration_secs: u32
+        duration_secs: u32,
     },
 
     // Image file hosted on server
@@ -42,8 +42,8 @@ pub enum PlaylistItem {
     },
 
     // Set of images, cycled at fixed rate
-    Slideshow{
-        urls:Vec<String>,
+    Slideshow {
+        urls: Vec<String>,
         seconds_per_slide: u32,
     },
 
