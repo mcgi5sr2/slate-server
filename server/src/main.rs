@@ -38,6 +38,13 @@ async fn main() {
         .await
         .expect("Failed to enable WAL mode");
 
+    // Run any pending migrations on startup.
+    // ../migrations goes from server/ up to the workspace root.
+    sqlx::migrate!("../migrations")
+        .run(&pool)
+        .await
+        .expect("Failed to run database migrations");
+
     // AppState for easy cloning of the DB pool for each request handler via Arc
     let state = AppState::new(pool);
 

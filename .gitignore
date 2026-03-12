@@ -1,9 +1,11 @@
 # Rust build artifacts
 target/
 
-# SQLite database and uploaded files
-data/db/
-data/uploads/*.db
+# SQLite database and uploaded files .gitkeep files ensure the dirs are cloned even if empty
+data/db/*
+!data/db/.gitkeep
+data/uploads/*
+!data/uploads/.gitkeep
 
 # Environment variables
 .env

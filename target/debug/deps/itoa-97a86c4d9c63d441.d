@@ -1,6 +1,0 @@
-/home/me1sgr/projects/rust/slate_show/target/debug/deps/itoa-97a86c4d9c63d441.d: /home/me1sgr/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/itoa-1.0.17/src/lib.rs /home/me1sgr/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/itoa-1.0.17/src/u128_ext.rs
-
-/home/me1sgr/projects/rust/slate_show/target/debug/deps/libitoa-97a86c4d9c63d441.rmeta: /home/me1sgr/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/itoa-1.0.17/src/lib.rs /home/me1sgr/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/itoa-1.0.17/src/u128_ext.rs
-
-/home/me1sgr/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/itoa-1.0.17/src/lib.rs:
-/home/me1sgr/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/itoa-1.0.17/src/u128_ext.rs:
