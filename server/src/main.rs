@@ -59,6 +59,9 @@ async fn main() {
     // with_state allows any handler to request state from the axum route
     let app = Router::new()
         .route("/health", get(health))
+        //location routes
+        .route("/api/locations", get(routes::locations::list).post(routes::locations::create))
+        .route("/api/locations/{id}", get(routes::locations::get).delete(routes::locations::delete))
         .nest_service("/uploads", ServeDir::new(&uploads_dir))
         .with_state(state);
 

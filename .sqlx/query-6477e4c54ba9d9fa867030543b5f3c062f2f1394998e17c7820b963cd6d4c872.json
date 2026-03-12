@@ -1,0 +1,26 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT item_type, data FROM playlist_items WHERE location_id = ? ORDER BY position",
+  "describe": {
+    "columns": [
+      {
+        "name": "item_type",
+        "ordinal": 0,
+        "type_info": "Text"
+      },
+      {
+        "name": "data",
+        "ordinal": 1,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "6477e4c54ba9d9fa867030543b5f3c062f2f1394998e17c7820b963cd6d4c872"
+}
