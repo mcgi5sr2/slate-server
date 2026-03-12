@@ -1,0 +1,20 @@
+services:
+  server:
+    build:
+      # Build context is the workspace root so Docker can see all crates
+      # and the shared data/ volume structure
+      context: .
+      dockerfile: server/Dockerfile
+    ports:
+      - "3000:3000"
+    volumes:
+      # SQLite database file — persists across container restarts
+      # Files are stored on disk, not as blobs in the database
+      - ./data/db:/app/data/db
+      # Uploaded assets (images, videos, PDF renders)
+      # Served via /uploads/* route, never stored in SQLite
+      - ./data/uploads:/app/data/uploads
+    environment:
+      - DATABASE_URL=sqlite://data/db/slate.db
+      - UPLOADS_DIR=data/uploads
+      - SERVER_PORT=3000

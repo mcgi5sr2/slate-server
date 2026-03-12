@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 
 // Kiosks identify by str named location as id
 // but also str named location `name` to make it clearer to users which location
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Location {
     pub id: String,   // for the machine god
     pub name: String, // for humies
@@ -33,7 +34,7 @@ pub enum PlaylistItem {
     // Image file hosted on server
     Image {
         url: String,
-        duraction_secs: u32,
+        duration_secs: u32,
     },
 
     // video file, plays full duration then advances

@@ -2,7 +2,8 @@
 target/
 
 # SQLite database and uploaded files
-data/
+data/db/
+data/uploads/*.db
 
 # Environment variables
 .env
