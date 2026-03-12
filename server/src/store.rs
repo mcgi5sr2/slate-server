@@ -1,8 +1,6 @@
 // The data base pool
 
 // RwLock to allow multiple references to the same object
-// Arc for shared ownership, dropped with last reference
-use std::sync::Arc;
 use sqlx::SqlitePool;
 
 // App state is our memory store for all server data 
@@ -11,13 +9,11 @@ use sqlx::SqlitePool;
 #[derive(Clone)]
 pub struct AppState {
     // Database connection pool, all route handlers use this to query SQLite
-    pub db: Arc<SqlitePool>,
+    pub db: SqlitePool,
 }
 
 impl AppState {
     pub fn new(pool: SqlitePool) -> Self {
-        AppState {
-            db: Arc::new(pool),
-        }
+        AppState { db: pool }
     }
 }
