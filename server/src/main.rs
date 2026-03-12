@@ -1,12 +1,13 @@
 use axum::{Router, routing::get};
-use sqlx::sqlite::SqlitePoolOptions;
+use sqlx::sqlite::{SqlitePoolOptions, SqliteConnectOptions};
 use std::env;
+use std::str::FromStr;
 use tower_http::services::ServeDir;
 
-mod models;
-mod store;
 mod db;
+mod models;
 mod routes;
+mod store;
 
 // export AppState for route handler access
 use store::AppState;
@@ -18,19 +19,24 @@ async fn main() {
     dotenvy::dotenv().ok();
 
     // DATABASE_URL from .env
-    let database_url = env::var("DATABASE_URL")
-        .expect("DATABASE_URL must be in the .env or environment");
+    let database_url =
+        env::var("DATABASE_URL").expect("DATABASE_URL must be in the .env or environment");
 
     // Read UPLOADS_DIR, file served as static asses not stored in database
-    let uploads_dir = env::var("UPLOADS_DIR")
-        .expect("UPLOADS_DIR must be set in the .env or environment");
+    let uploads_dir =
+        env::var("UPLOADS_DIR").expect("UPLOADS_DIR must be set in the .env or environment");
 
-    // Create a connection pool for sqlx, as epecting multiple queries
-    // hardcoded 5 concurrent writers on the server (Kiosks only READ)
+    // Parse connection options from DATABASE_URL and enable file creation.
+    // By default sqlx will NOT create the .db file — create_if_missing(true) is required.
+    let connect_options = SqliteConnectOptions::from_str(&database_url)
+        .expect("Invalid DATABASE_URL format")
+        .create_if_missing(true);
+
     let pool = SqlitePoolOptions::new()
         .max_connections(5)
-        .connect(&database_url)
-        .await.expect("Failed to connect to SQLite database");
+        .connect_with(SqliteConnectOptions::from_str(&database_url).unwrap().create_if_missing(true))
+        .await
+        .expect("Failed to connect to SQLite database");
 
     // Enable WAL mode so the database can be read while it writes
     sqlx::query("PRAGMA journal_mode=WAL;")

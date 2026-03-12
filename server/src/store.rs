@@ -3,7 +3,7 @@
 // RwLock to allow multiple references to the same object
 use sqlx::SqlitePool;
 
-// App state is our memory store for all server data 
+// App state is our memory store for all server data
 // Clone is derived as boilerplate, so we can clone the state for the request handler
 // Arc makes this cheaper as it increments a counter, not copy the data
 #[derive(Clone)]

@@ -10,6 +10,9 @@ data/uploads/*
 # Environment variables
 .env
 
+# Claude Code instructions (personal/local)
+CLAUDE.md
+
 # SQLite temp files 
 *.db
 *.db-shm
