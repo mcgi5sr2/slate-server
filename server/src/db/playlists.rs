@@ -67,7 +67,7 @@ pub async fn set_playlist(
 
         // Serialise the item to JSON, then strip the "type" field —
         // we store it separately in item_type column to allow indexed queries
-        let mut value = serde_json::to_value(&item).expect("PlaylistItem serialisation failed");
+        let mut value = serde_json::to_value(item).expect("PlaylistItem serialisation failed");
         if let Some(obj) = value.as_object_mut() {
             obj.remove("type");
         }

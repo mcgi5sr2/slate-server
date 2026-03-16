@@ -1,4 +1,4 @@
-use axum::{Router, routing::get};
+use axum::{Router, routing::{get, post}};
 use sqlx::sqlite::{SqlitePoolOptions, SqliteConnectOptions};
 use std::env;
 use std::str::FromStr;
@@ -52,7 +52,7 @@ async fn main() {
         .expect("Failed to run database migrations");
 
     // AppState for easy cloning of the DB pool for each request handler via Arc
-    let state = AppState::new(pool);
+    let state = AppState::new(pool, uploads_dir.clone());
 
     // Build the router, /health and /uploads/*path to serve files
     // nest_service is a service that maps URL paths to files on disk
@@ -63,6 +63,7 @@ async fn main() {
         .route("/api/locations", get(routes::locations::list).post(routes::locations::create))
         .route("/api/locations/{id}", get(routes::locations::get).delete(routes::locations::delete))
         .route("/api/playlist/{location_id}", get(routes::playlists::get).post(routes::playlists::set))
+        .route("/api/upload", post(routes::upload::upload))
         .nest_service("/uploads", ServeDir::new(&uploads_dir))
         .with_state(state);
 
