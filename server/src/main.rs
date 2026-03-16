@@ -34,7 +34,7 @@ async fn main() {
 
     let pool = SqlitePoolOptions::new()
         .max_connections(5)
-        .connect_with(SqliteConnectOptions::from_str(&database_url).unwrap().create_if_missing(true))
+        .connect_with(connect_options)
         .await
         .expect("Failed to connect to SQLite database");
 
@@ -62,6 +62,7 @@ async fn main() {
         //location routes
         .route("/api/locations", get(routes::locations::list).post(routes::locations::create))
         .route("/api/locations/{id}", get(routes::locations::get).delete(routes::locations::delete))
+        .route("/api/playlist/{location_id}", get(routes::playlists::get).post(routes::playlists::set))
         .nest_service("/uploads", ServeDir::new(&uploads_dir))
         .with_state(state);
 
