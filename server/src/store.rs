@@ -16,6 +16,9 @@ pub struct AppState {
 
 impl AppState {
     pub fn new(pool: SqlitePool, uploads_dir: String) -> Self {
-        AppState { db: pool, uploads_dir }
+        AppState {
+            db: pool,
+            uploads_dir,
+        }
     }
 }

@@ -6,10 +6,7 @@ use crate::models::{Playlist, PlaylistItem};
 use sqlx::SqlitePool;
 
 // Feth all playlist items for a location, ordered by position
-pub async fn get_playlist(
-    pool: &SqlitePool,
-    location_id: &str,
-) -> Result<Playlist, sqlx::Error> {
+pub async fn get_playlist(pool: &SqlitePool, location_id: &str) -> Result<Playlist, sqlx::Error> {
     // Fetch rows - item_type and data as strings
     let rows = sqlx::query!(
         "SELECT item_type, data FROM playlist_items WHERE location_id = ? ORDER BY position",
@@ -37,7 +34,6 @@ pub async fn get_playlist(
     })
 }
 
-
 // Replace a location's entire playlist.
 // Deletes all existing items then inserts the new ones in order.
 // Wrapped in a transaction so it's all-or-nothing.
@@ -50,19 +46,22 @@ pub async fn set_playlist(
     let mut tx = pool.begin().await?;
 
     // Delete existing items for this location
-    sqlx::query!("DELETE FROM playlist_items WHERE location_id = ?", location_id)
-        .execute(&mut *tx)
-        .await?;
+    sqlx::query!(
+        "DELETE FROM playlist_items WHERE location_id = ?",
+        location_id
+    )
+    .execute(&mut *tx)
+    .await?;
 
     // Insert each new item with its position index
     for (position, item) in items.iter().enumerate() {
         // Get the type tag string from the enum variant
         let item_type = match &item {
-            PlaylistItem::Url { .. }       => "url",
-            PlaylistItem::Image { .. }     => "image",
-            PlaylistItem::Video { .. }     => "video",
+            PlaylistItem::Url { .. } => "url",
+            PlaylistItem::Image { .. } => "image",
+            PlaylistItem::Video { .. } => "video",
             PlaylistItem::Slideshow { .. } => "slideshow",
-            PlaylistItem::Pdf { .. }       => "pdf",
+            PlaylistItem::Pdf { .. } => "pdf",
         };
 
         // Serialise the item to JSON, then strip the "type" field —

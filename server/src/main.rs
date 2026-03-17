@@ -1,5 +1,8 @@
-use axum::{Router, routing::{get, post}};
-use sqlx::sqlite::{SqlitePoolOptions, SqliteConnectOptions};
+use axum::{
+    Router,
+    routing::{get, post},
+};
+use sqlx::sqlite::{SqliteConnectOptions, SqlitePoolOptions};
 use std::env;
 use std::str::FromStr;
 use tower_http::services::ServeDir;
@@ -65,9 +68,18 @@ async fn main() {
     let app = Router::new()
         .route("/health", get(health))
         //location routes
-        .route("/api/locations", get(routes::locations::list).post(routes::locations::create))
-        .route("/api/locations/{id}", get(routes::locations::get).delete(routes::locations::delete))
-        .route("/api/playlist/{location_id}", get(routes::playlists::get).post(routes::playlists::set))
+        .route(
+            "/api/locations",
+            get(routes::locations::list).post(routes::locations::create),
+        )
+        .route(
+            "/api/locations/{id}",
+            get(routes::locations::get).delete(routes::locations::delete),
+        )
+        .route(
+            "/api/playlist/{location_id}",
+            get(routes::playlists::get).post(routes::playlists::set),
+        )
         .route("/api/upload", post(routes::upload::upload))
         // nest_service for kiosk to fetch
         .nest_service("/uploads", ServeDir::new(&uploads_dir))

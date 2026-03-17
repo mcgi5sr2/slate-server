@@ -3,29 +3,26 @@
 // save to {UPLOADS_DIR}/{location_id}/{name}.{ext}, overwrite if exists. name slug is what decides if overwritten
 // Returns the public URL the file can be accessed at
 
+use crate::store::AppState;
 use axum::{
+    Json,
     extract::{Multipart, State},
     http::StatusCode,
     response::IntoResponse,
-    Json,
 };
 use serde::Serialize;
 use std::path::PathBuf;
 use tokio::fs;
-use crate::store::AppState;
 
 //Response body the URL the uploaded fi8le can be accessed at
 #[derive(Serialize)]
-pub struct UploadResponse{
+pub struct UploadResponse {
     pub url: String,
 }
 
 //POST /api/upload
-// expects: 1location_id1, `name` (slug) and `file` 
-pub async fn upload(
-    State(state): State<AppState>,
-    mut multipart: Multipart,
-) -> impl IntoResponse {
+// expects: 1location_id1, `name` (slug) and `file`
+pub async fn upload(State(state): State<AppState>, mut multipart: Multipart) -> impl IntoResponse {
     let mut location_id: Option<String> = None;
     let mut name: Option<String> = None;
     let mut file_bytes: Option<Vec<u8>> = None;
@@ -52,22 +49,37 @@ pub async fn upload(
                 // read the file bytes
                 file_bytes = field.bytes().await.ok().map(|b| b.to_vec());
             }
-            _=> {} // ignore unknown fileds
+            _ => {} // ignore unknown fileds
         }
     }
 
     // check we got both fields
     let (Some(location_id), Some(name), Some(bytes), Some(ext)) =
-        (location_id, name, file_bytes, extension) else {
-        return (StatusCode::BAD_REQUEST, "Missing location_id, name, or file field").into_response();
+        (location_id, name, file_bytes, extension)
+    else {
+        return (
+            StatusCode::BAD_REQUEST,
+            "Missing location_id, name, or file field",
+        )
+            .into_response();
     };
 
     // fix up the location_id name slug to only allow normal chars
-    if !location_id.chars().all(|c| c.is_alphanumeric() || c == '-' || c == '_') {
+    if !location_id
+        .chars()
+        .all(|c| c.is_alphanumeric() || c == '-' || c == '_')
+    {
         return (StatusCode::BAD_REQUEST, "Invalid location_id").into_response();
     }
-    if !name.chars().all(|c| c.is_alphanumeric() || c == '-' || c == '_') {
-        return (StatusCode::BAD_REQUEST, "Invalid name: use only letters, numbers, hyphens, underscores").into_response();
+    if !name
+        .chars()
+        .all(|c| c.is_alphanumeric() || c == '-' || c == '_')
+    {
+        return (
+            StatusCode::BAD_REQUEST,
+            "Invalid name: use only letters, numbers, hyphens, underscores",
+        )
+            .into_response();
     }
 
     // create the dir path: {uploads_dir}/{location_id}/
@@ -78,7 +90,7 @@ pub async fn upload(
         return StatusCode::INTERNAL_SERVER_ERROR.into_response();
     }
 
-        // create the file path: {uploads_dir}/{location_id}/{name}.{ext}
+    // create the file path: {uploads_dir}/{location_id}/{name}.{ext}
     let filename = format!("{}.{}", name, ext);
     let path = dir.join(&filename);
 
@@ -90,5 +102,4 @@ pub async fn upload(
     // Return the public URL
     let url = format!("/uploads/{}/{}", location_id, filename);
     (StatusCode::OK, Json(UploadResponse { url })).into_response()
-
 }

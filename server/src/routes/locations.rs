@@ -4,12 +4,15 @@
 // GET  /api/locations/{id} — get a single location
 // DELETE /api/locations/{id} — delete a location
 
+use crate::db::locations;
+use crate::store::AppState;
 use axum::{
-    Json, extract::{Path, State}, http::StatusCode, response::IntoResponse
+    Json,
+    extract::{Path, State},
+    http::StatusCode,
+    response::IntoResponse,
 };
 use serde::Deserialize;
-use crate::store::AppState;
-use crate::db::locations;
 
 // POST /api/locations body shape
 #[derive(Deserialize)]
@@ -39,7 +42,7 @@ pub async fn get(State(state): State<AppState>, Path(id): Path<String>) -> impl 
 pub async fn create(
     State(state): State<AppState>,
     Json(body): Json<CreateLocationRequest>,
-) ->impl IntoResponse {
+) -> impl IntoResponse {
     match locations::create(&state.db, &body.id, &body.name).await {
         Ok(loc) => (StatusCode::CREATED, Json(loc)).into_response(),
         Err(_) => StatusCode::INTERNAL_SERVER_ERROR.into_response(),
