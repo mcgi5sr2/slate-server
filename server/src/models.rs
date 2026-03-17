@@ -51,7 +51,7 @@ pub enum PlaylistItem {
     // PDF, server will pre render to images list
     // one URL per page
     Pdf {
-        page_urls: Vec<String>,
+        urls: Vec<String>,
         seconds_per_page: u32,
     },
 }

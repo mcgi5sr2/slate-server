@@ -119,6 +119,31 @@
                 <button class="primary" style="width:100%; margin-top:8px;" onclick="addAndSave()">Add &amp; Save</button>
             </div>
 
+            <!-- Panel C: upload a PDF — rendered to PNG pages server-side -->
+            <div class="add-panel">
+                <div class="add-panel-title">Upload PDF</div>
+                <div class="field" style="margin-bottom:8px;">
+                    <label>Name (no extension)</label>
+                    <input type="text" id="pdf-name" placeholder="e.g. monthly-report">
+                </div>
+                <div class="field" style="margin-bottom:8px;">
+                    <label>Seconds per page</label>
+                    <div class="stepper">
+                        <button onclick="stepPdfDuration(-5)">−</button>
+                        <input type="number" id="pdf-duration" value="10" min="1">
+                        <button onclick="stepPdfDuration(5)">+</button>
+                    </div>
+                </div>
+                <div class="field" style="margin-bottom:8px;">
+                    <label>File</label>
+                    <input type="file" id="pdf-file" accept=".pdf" style="display:none;" onchange="updatePdfLabel()">
+                    <button class="secondary" onclick="document.getElementById('pdf-file').click()">
+                        <span id="pdf-file-label">Choose PDF</span>
+                    </button>
+                </div>
+                <button class="primary" style="width:100%; margin-top:8px;" onclick="uploadPdfAndAdd()">Upload &amp; Add</button>
+            </div>
+
         </div>
     </div>
 
@@ -163,8 +188,20 @@
                      ondragend="onDragEnd(event)">
                     ${itemThumb(item)}
                     ${itemTypeBadge(item.type)}
-                    <span class="item-url">${item.url || ''}</span>
-                    ${item.type !== 'video' ? `
+                    <span class="item-url">${item.type === 'pdf' ? `${(item.urls || []).length} pages` : (item.url || '')}</span>
+                    ${item.type === 'video' ? '<span class="item-duration">auto</span>' :
+                      item.type === 'pdf' ? `
+                        <div class="stepper">
+                            <button onclick="stepPdfItemDuration(${index}, -5)">−</button>
+                            <input type="number"
+                                   value="${item.seconds_per_page || 10}"
+                                   min="1"
+                                   title="Seconds per page"
+                                   onchange="updatePdfItemDuration(${index}, this.value)">
+                            <button onclick="stepPdfItemDuration(${index}, 5)">+</button>
+                        </div>
+                        <span class="duration-unit">s/pg</span>
+                      ` : `
                         <div class="stepper">
                             <button onclick="stepDuration(${index}, -5)">−</button>
                             <input type="number"
@@ -175,7 +212,7 @@
                             <button onclick="stepDuration(${index}, 5)">+</button>
                         </div>
                         <span class="duration-unit">s</span>
-                    ` : '<span class="item-duration">auto</span>'}
+                      `}
                     <button class="danger" onclick="removeAndSave(${index})">Remove</button>
                 </div>
             `).join('');
@@ -242,6 +279,20 @@
             const secs = parseInt(value);
             if (isNaN(secs) || secs < 1) return;
             items[index].duration_secs = secs;
+            await persistPlaylist();
+        }
+
+        async function stepPdfItemDuration(index, delta) {
+            const current = items[index].seconds_per_page || 10;
+            items[index].seconds_per_page = Math.max(1, current + delta);
+            renderPlaylist();
+            await persistPlaylist();
+        }
+
+        async function updatePdfItemDuration(index, value) {
+            const secs = parseInt(value);
+            if (isNaN(secs) || secs < 1) return;
+            items[index].seconds_per_page = secs;
             await persistPlaylist();
         }
 
@@ -343,6 +394,67 @@
             document.getElementById('item-url').value = '';
 
             await persistPlaylist();
+        }
+
+        // ── PDF upload ────────────────────────────────────────────────────────
+
+        function updatePdfLabel() {
+            const file = document.getElementById('pdf-file').files[0];
+            document.getElementById('pdf-file-label').textContent = file ? file.name : 'Choose PDF';
+        }
+
+        function stepPdfDuration(delta) {
+            const input = document.getElementById('pdf-duration');
+            input.value = Math.max(1, parseInt(input.value) + delta);
+        }
+
+        // Upload a PDF, get back page_urls, add as a pdf playlist item
+        async function uploadPdfAndAdd() {
+            const name = document.getElementById('pdf-name').value.trim().replace(/\s+/g, '-');
+            const fileInput = document.getElementById('pdf-file');
+            const file = fileInput.files[0];
+            const secondsPerPage = parseInt(document.getElementById('pdf-duration').value);
+
+            if (!name || !file) {
+                alert('Please enter a name and select a PDF.');
+                return;
+            }
+
+            // Upload the PDF using multipart form
+            const form = new FormData();
+            form.append('location_id', locationId);
+            form.append('name', name);
+            form.append('file', file);
+
+            const res = await fetch('/api/upload', { method: 'POST', body: form });
+
+            if (!res.ok) {
+                alert('PDF upload failed.');
+                return;
+            }
+
+            const data = await res.json();
+
+            if (!data.page_urls || data.page_urls.length === 0) {
+                alert('PDF rendered no pages.');
+                return;
+            }
+
+            // Build a pdf playlist item with the page URLs and seconds per page
+            const item = {
+                type: 'pdf',
+                urls: data.page_urls,
+                seconds_per_page: secondsPerPage,
+            };
+
+            items.push(item);
+            renderPlaylist();
+            await persistPlaylist();
+
+            // Clear the form
+            document.getElementById('pdf-name').value = '';
+            fileInput.value = '';
+            document.getElementById('pdf-file-label').textContent = 'Choose PDF';
         }
 
         async function persistPlaylist() {

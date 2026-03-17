@@ -126,39 +126,58 @@
 
         // ── Stage building ────────────────────────────────────────────────────
 
+        // Expand playlist items into slides.
+        // PDF items become one slide per page — each page is shown for seconds_per_page.
+        // All other types become a single slide.
+        // slides[] is a flat array of {url, type, duration_secs} objects.
+        let slides = [];
+
         function buildStage() {
             const stage = document.getElementById('stage');
             stage.innerHTML = '';
+            slides = [];
 
-            items.forEach((item, index) => {
-                const slide = document.createElement('div');
-                slide.className = 'slide';
-                slide.id = `slide-${index}`;
+            // Expand items into slides
+            items.forEach(item => {
+                if (item.type === 'pdf') {
+                    // Each page becomes its own image slide
+                    (item.urls || []).forEach(url => {
+                        slides.push({ type: 'image', url, duration_secs: item.seconds_per_page || 10 });
+                    });
+                } else {
+                    slides.push(item);
+                }
+            });
 
-                if (item.type === 'image') {
+            slides.forEach((slide, index) => {
+                const el = document.createElement('div');
+                el.className = 'slide';
+                el.id = `slide-${index}`;
+
+                if (slide.type === 'image') {
                     const img = document.createElement('img');
                     img.className = 'slide-image';
-                    img.src = item.url;
-                    slide.appendChild(img);
+                    img.src = slide.url;
+                    el.appendChild(img);
 
-                } else if (item.type === 'video') {
+                } else if (slide.type === 'video') {
                     const video = document.createElement('video');
                     video.className = 'slide-video';
-                    video.src = item.url;
+                    video.src = slide.url;
                     video.autoplay = true;
                     video.muted = true;
                     video.playsInline = true;
                     video.addEventListener('ended', () => advance());
-                    slide.appendChild(video);
+                    el.appendChild(video);
 
-                } else if (item.type === 'url') {
+                } else if (slide.type === 'url') {
                     const iframe = document.createElement('iframe');
                     iframe.className = 'slide-iframe';
-                    iframe.src = item.url;
-                    slide.appendChild(iframe);
+                    iframe.src = slide.url;
+                    el.appendChild(iframe);
                 }
 
-                stage.appendChild(slide);
+                stage.appendChild(el);
             });
         }
 
@@ -173,9 +192,9 @@
                 advanceTimer = null;
             }
 
-            if (items.length === 0) return;
+            if (slides.length === 0) return;
 
-            const item = items[index];
+            const slide = slides[index];
             const nextSlide = document.getElementById(`slide-${index}`);
             if (!nextSlide) return;
 
@@ -183,7 +202,7 @@
             document.querySelectorAll('.slide').forEach(s => s.classList.remove('active'));
             nextSlide.classList.add('active');
 
-            if (item.type === 'video') {
+            if (slide.type === 'video') {
                 // Reset and play video from the start
                 const video = nextSlide.querySelector('video');
                 if (video) {
@@ -193,15 +212,15 @@
             } else {
                 // Advance after duration — wait for the fade to finish first (0.8s)
                 // so the timer starts when the slide is fully visible
-                const duration = (item.duration_secs || 10) * 1000;
+                const duration = (slide.duration_secs || 10) * 1000;
                 advanceTimer = setTimeout(advance, duration + 800);
             }
         }
 
         // Advance to the next slide, looping back to 0 at the end
         function advance() {
-            if (items.length === 0) return;
-            currentIndex = (currentIndex + 1) % items.length;
+            if (slides.length === 0) return;
+            currentIndex = (currentIndex + 1) % slides.length;
             showSlide(currentIndex);
         }
     </script>
