@@ -22,9 +22,14 @@ async fn main() {
     let database_url =
         env::var("DATABASE_URL").expect("DATABASE_URL must be in the .env or environment");
 
-    // Read UPLOADS_DIR, file served as static asses not stored in database
+    // UPLOADS_DIR from .env, file served as static assets not stored in database
     let uploads_dir =
         env::var("UPLOADS_DIR").expect("UPLOADS_DIR must be set in the .env or environment");
+
+    // webpage path from .env
+    // STATIC_DIR from .env, serves the admin UI
+    let static_dir =
+        env::var("STATIC_DIR").expect("STATIC_DIR must be set in the .env or environment");
 
     // Parse connection options from DATABASE_URL and enable file creation.
     // By default sqlx will NOT create the .db file — create_if_missing(true) is required.
@@ -64,7 +69,10 @@ async fn main() {
         .route("/api/locations/{id}", get(routes::locations::get).delete(routes::locations::delete))
         .route("/api/playlist/{location_id}", get(routes::playlists::get).post(routes::playlists::set))
         .route("/api/upload", post(routes::upload::upload))
+        // nest_service for kiosk to fetch
         .nest_service("/uploads", ServeDir::new(&uploads_dir))
+        // nest_service for the admin static files
+        .nest_service("/admin", ServeDir::new(&static_dir))
         .with_state(state);
 
     let port = env::var("SERVER_PORT").unwrap_or_else(|_| "3000".to_string());
