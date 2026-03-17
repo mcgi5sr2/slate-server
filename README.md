@@ -21,7 +21,7 @@ A self-hosted digital signage system. Manage content and playlists from a centra
 │                       └────────────────────────┘ │
 └──────────────────────────────────────────────────┘
           │                        │
-          │ HTTP poll (ETag)        │ HTTP (media files)
+          │ HTTP poll (ETag)       │ HTTP (media files)
           ▼                        ▼
 ┌─────────────────┐      ┌─────────────────┐
 │  Kiosk Browser  │      │  Admin Browser  │
