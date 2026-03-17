@@ -73,8 +73,9 @@
     <div id="error"></div>
 
     <script>
-        const params = new URLSearchParams(window.location.search);
-        const locationId = params.get('id');
+        // Read location id from the URL path — e.g. /kiosk/reception → "reception"
+        const locationId = window.location.pathname.split('/').pop();
+
 
         let items = [];
         let currentIndex = 0;
@@ -82,7 +83,7 @@
         let currentEtag = null;
 
         if (!locationId) {
-            document.getElementById('error').textContent = 'No location id specified. Add ?id=yourLocation to the URL.';
+            document.getElementById('error').textContent = 'No location id in URL. Use /kiosk/your-location-id';
         } else {
             start();
         }

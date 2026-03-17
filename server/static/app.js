@@ -26,7 +26,7 @@ async function loadLocations() {
         <div class="location">
             <a href="playlist.html?id=${loc.id}">${loc.name}</a>
             <span class="location-id">${loc.id}</span>
-            <a class="kiosk-link" href="kiosk.html?id=${loc.id}" target="_blank">▶ Kiosk view</a>
+            <a class="kiosk-link" href="/kiosk/${loc.id}" target="_blank">▶ Kiosk view</a>
             <button class="danger" onclick="deleteLocation('${loc.id}')">Delete</button>
         </div>
     `).join('');

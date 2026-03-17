@@ -3,3 +3,4 @@
 pub mod locations;
 pub mod playlists;
 pub mod upload;
+pub mod kiosk;

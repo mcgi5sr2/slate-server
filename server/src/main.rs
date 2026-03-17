@@ -60,7 +60,7 @@ async fn main() {
         .expect("Failed to run database migrations");
 
     // AppState for easy cloning of the DB pool for each request handler via Arc
-    let state = AppState::new(pool, uploads_dir.clone());
+    let state = AppState::new(pool, uploads_dir.clone(), static_dir.clone());
 
     // Build the router, /health and /uploads/*path to serve files
     // nest_service is a service that maps URL paths to files on disk
@@ -81,6 +81,7 @@ async fn main() {
             get(routes::playlists::get).post(routes::playlists::set),
         )
         .route("/api/upload", post(routes::upload::upload))
+        .route("/kiosk/{location_id}", get(routes::kiosk::serve))
         // nest_service for kiosk to fetch
         .nest_service("/uploads", ServeDir::new(&uploads_dir))
         // nest_service for the admin static files

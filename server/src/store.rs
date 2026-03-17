@@ -10,15 +10,18 @@ use sqlx::SqlitePool;
 pub struct AppState {
     // Database connection pool, all route handlers use this to query SQLite
     pub db: SqlitePool,
-    // path to uploads direction on disk for the uploads handler
+    // path to uploads directory on disk for the uploads handler
     pub uploads_dir: String,
+    // path to static files directory for serving the admin and kiosk pages
+    pub static_dir: String,
 }
 
 impl AppState {
-    pub fn new(pool: SqlitePool, uploads_dir: String) -> Self {
+    pub fn new(pool: SqlitePool, uploads_dir: String, static_dir: String) -> Self {
         AppState {
             db: pool,
             uploads_dir,
+            static_dir,
         }
     }
 }
