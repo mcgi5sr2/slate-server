@@ -1,4 +1,5 @@
 use axum::{
+    extract::DefaultBodyLimit,
     Router,
     routing::{get, post},
 };
@@ -86,6 +87,7 @@ async fn main() {
         .nest_service("/uploads", ServeDir::new(&uploads_dir))
         // nest_service for the admin static files
         .nest_service("/admin", ServeDir::new(&static_dir))
+        .layer(DefaultBodyLimit::disable())//DISABLE filesize limits for now, we should look at reinstating this with warnings at upload time as well
         .with_state(state);
 
     let port = env::var("SERVER_PORT").unwrap_or_else(|_| "3000".to_string());

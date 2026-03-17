@@ -273,6 +273,26 @@ input[type="number"] {
     background: var(--surface);
 }
 
+/* ── Add item panels ─────────────────────────────────────────────────────────*/
+
+.add-panel {
+    flex: 1;
+    min-width: 200px;
+    max-width: 320px;
+    background: var(--surface-alt);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 12px;
+}
+.add-panel-title {
+    font-weight: bold;
+    font-size: 0.9em;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 10px;
+}
+
 /* ── Upload progress bar ─────────────────────────────────────────────────────*/
 
 .progress-bar-wrap {

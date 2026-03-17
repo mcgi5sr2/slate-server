@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Slate Show — Playlist Editor</title>
+    <link rel="icon" href="favicon.svg">
     <link rel="stylesheet" href="style.css">
     <style>
         /* Drag and drop styles */
@@ -85,32 +86,37 @@
             <input type="number" id="item-duration" value="10" min="1">
         </div>
 
-        <!-- Two paths: upload a file, or add a URL directly -->
-        <div style="display:flex; gap:16px; flex-wrap:wrap; margin-top:10px;">
+        <!-- Add item panels — each method gets its own box -->
+        <div style="display:flex; gap:12px; flex-wrap:wrap; margin-top:12px;">
 
-            <!-- Path A: upload a file and add in one click -->
-            <div class="field" style="margin:0; flex:1; min-width:200px;">
-                <label>Upload &amp; Add file</label>
-                <div style="display:flex; gap:4px;">
-                    <input type="text" id="upload-name" placeholder="name (no extension)" style="flex:1;">
-                    <!-- Hidden file input — triggered by the button below -->
-                    <input type="file" id="upload-file" style="display:none;" onchange="updateFileLabel()">
-                    <button class="secondary" onclick="document.getElementById('upload-file').click()"><span id="file-label">Choose file</span></button>
-                    <button class="primary" onclick="uploadAndAdd()">Upload &amp; Add</button>
+            <!-- Panel A: upload a file -->
+            <div class="add-panel">
+                <div class="add-panel-title">Upload File</div>
+                <div class="field" style="margin-bottom:8px;">
+                    <label>Name (no extension)</label>
+                    <input type="text" id="upload-name" placeholder="e.g. logo (no spaces)">
                 </div>
-                <!-- Progress bar — shown during upload, hidden otherwise -->
+                <div class="field" style="margin-bottom:8px;">
+                    <label>File</label>
+                    <input type="file" id="upload-file" style="display:none;" onchange="updateFileLabel()">
+                    <button class="secondary" onclick="document.getElementById('upload-file').click()">
+                        <span id="file-label">Choose file</span>
+                    </button>
+                </div>
                 <div class="progress-bar-wrap" id="upload-progress-wrap">
                     <div class="progress-bar-fill" id="upload-progress-fill"></div>
                 </div>
+                <button class="primary" style="width:100%; margin-top:8px;" onclick="uploadAndAdd()">Upload &amp; Add</button>
             </div>
 
-            <!-- Path B: manually enter a URL (e.g. Grafana dashboard) -->
-            <div class="field" style="margin:0; flex:1; min-width:200px;">
-                <label>Add URL directly</label>
-                <div style="display:flex; gap:4px;">
-                    <input type="text" id="item-url" placeholder="" style="flex:1;">
-                    <button class="primary" onclick="addAndSave()">Add &amp; Save</button>
+            <!-- Panel B: add a URL directly (e.g. Grafana dashboard) -->
+            <div class="add-panel">
+                <div class="add-panel-title">Add URL</div>
+                <div class="field" style="margin-bottom:8px;">
+                    <label>URL</label>
+                    <input type="text" id="item-url" placeholder="">
                 </div>
+                <button class="primary" style="width:100%; margin-top:8px;" onclick="addAndSave()">Add &amp; Save</button>
             </div>
 
         </div>
@@ -260,16 +266,36 @@
                 type === 'video' ? 'none' : 'block';
         }
 
-        // Update the file button label when a file is selected
+        // Update the file button label when a file is selected.
+        // Also auto-sets the item type based on the file extension.
         function updateFileLabel() {
             const fileInput = document.getElementById('upload-file');
+            const file = fileInput.files[0];
             const label = document.getElementById('file-label');
-            label.textContent = fileInput.files[0] ? fileInput.files[0].name : 'Choose file';
+            label.textContent = file ? file.name : 'Choose file';
+
+            if (!file) return;
+
+            // Detect type from extension and update the type dropdown
+            const ext = file.name.split('.').pop().toLowerCase();
+            const videoExts = ['mp4', 'webm', 'mov', 'avi', 'mkv'];
+            const imageExts = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'];
+
+            const typeSelect = document.getElementById('item-type');
+            if (videoExts.includes(ext)) {
+                typeSelect.value = 'video';
+            } else if (imageExts.includes(ext)) {
+                typeSelect.value = 'image';
+            }
+            // Trigger the duration field show/hide
+            onTypeChange();
         }
 
         // Upload a file and immediately add it to the playlist
         async function uploadAndAdd() {
-            const name = document.getElementById('upload-name').value.trim();
+            // Replace spaces with hyphens — slugs can't contain spaces
+            const raw = document.getElementById('upload-name').value.trim();
+            const name = raw.replace(/\s+/g, '-');
             const fileInput = document.getElementById('upload-file');
             const file = fileInput.files[0];
 

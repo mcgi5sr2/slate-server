@@ -15,6 +15,7 @@ services:
       # Served via /uploads/* route, never stored in SQLite
       - ./data/uploads:/app/data/uploads
     environment:
-      - DATABASE_URL=sqlite://data/db/slate.db
+      - DATABASE_URL=sqlite:data/db/slate.db
       - UPLOADS_DIR=data/uploads
+      - STATIC_DIR=server/static
       - SERVER_PORT=3000
