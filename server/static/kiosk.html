@@ -14,13 +14,23 @@
             overflow: hidden;
         }
 
-        /* Each item fills the screen — hidden by default */
+        /* Each slide fills the screen absolutely so they stack on top of each other.
+           Opacity controls visibility — CSS transition animates the crossfade.
+           pointer-events:none on hidden slides prevents invisible iframes stealing clicks. */
         .slide {
             position: absolute;
             top: 0; left: 0;
             width: 100vw;
             height: 100vh;
-            display: none;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.8s ease-in-out;
+        }
+
+        /* The active slide is fully visible and interactive */
+        .slide.active {
+            opacity: 1;
+            pointer-events: auto;
         }
 
         /* Images fill the screen, maintain aspect ratio */
@@ -59,28 +69,18 @@
     </style>
 </head>
 <body>
-    <!-- Slides are injected here by JS -->
     <div id="stage"></div>
     <div id="error"></div>
 
     <script>
-        // Read the location id from the URL query string
-        // e.g. kiosk.html?id=reception
         const params = new URLSearchParams(window.location.search);
         const locationId = params.get('id');
 
-        // The current playlist items
         let items = [];
-
-        // Index of the currently displayed item
         let currentIndex = 0;
-
-        // Timer handle for advancing slides — stored so we can cancel it
         let advanceTimer = null;
-
-        // The ETag of the last playlist we received — sent with each poll
         let currentEtag = null;
-    
+
         if (!locationId) {
             document.getElementById('error').textContent = 'No location id specified. Add ?id=yourLocation to the URL.';
         } else {
@@ -90,48 +90,32 @@
         // ── Startup ───────────────────────────────────────────────────────────
 
         async function start() {
-            // Fetch the playlist immediately on load
             await pollPlaylist();
-
-            // Then poll every 10 seconds for changes
             setInterval(pollPlaylist, 10000);
         }
 
         // ── Polling ───────────────────────────────────────────────────────────
 
         async function pollPlaylist() {
-            // Build request headers — include If-None-Match if we have an ETag
             const headers = {};
-            if (currentEtag) {
-                headers['If-None-Match'] = currentEtag;
-            }
+            if (currentEtag) headers['If-None-Match'] = currentEtag;
 
             let res;
             try {
                 res = await fetch(`/api/playlist/${locationId}`, { headers });
             } catch (e) {
-                // Network error — server unreachable, keep showing current playlist
                 console.warn('Poll failed:', e);
                 return;
             }
 
-            // 304 Not Modified — playlist unchanged, nothing to do
             if (res.status === 304) return;
+            if (!res.ok) { console.warn('Poll error:', res.status); return; }
 
-            if (!res.ok) {
-                console.warn('Poll returned error:', res.status);
-                return;
-            }
-
-            // Got a new playlist — store the ETag for next poll
             currentEtag = res.headers.get('ETag');
-
             const playlist = await res.json();
 
-            // Only rebuild the display if the items actually changed
             if (JSON.stringify(playlist.items) !== JSON.stringify(items)) {
                 items = playlist.items;
-                // Restart from the beginning with the new playlist
                 currentIndex = 0;
                 buildStage();
                 showSlide(0);
@@ -140,11 +124,8 @@
 
         // ── Stage building ────────────────────────────────────────────────────
 
-        // Build the DOM elements for each playlist item
-        // We create all slides upfront and show/hide them as needed
         function buildStage() {
             const stage = document.getElementById('stage');
-            // Clear any existing slides
             stage.innerHTML = '';
 
             items.forEach((item, index) => {
@@ -153,26 +134,22 @@
                 slide.id = `slide-${index}`;
 
                 if (item.type === 'image') {
-                    // Image slide — img tag with object-fit: contain
                     const img = document.createElement('img');
                     img.className = 'slide-image';
                     img.src = item.url;
                     slide.appendChild(img);
 
                 } else if (item.type === 'video') {
-                    // Video slide — video tag, advance when video ends
                     const video = document.createElement('video');
                     video.className = 'slide-video';
                     video.src = item.url;
                     video.autoplay = true;
-                    video.muted = true;   // muted required for autoplay in browsers
+                    video.muted = true;
                     video.playsInline = true;
-                    // When the video finishes, advance to the next slide
                     video.addEventListener('ended', () => advance());
                     slide.appendChild(video);
 
                 } else if (item.type === 'url') {
-                    // Web URL — fullscreen iframe
                     const iframe = document.createElement('iframe');
                     iframe.className = 'slide-iframe';
                     iframe.src = item.url;
@@ -185,38 +162,37 @@
 
         // ── Playback ──────────────────────────────────────────────────────────
 
-        // Show the slide at the given index, hide all others
+        // Crossfade to the slide at the given index.
+        // We add the 'active' class (opacity: 1) to the new slide and remove it
+        // from all others. CSS transition handles the smooth fade between them.
         function showSlide(index) {
-            // Cancel any existing advance timer
             if (advanceTimer) {
                 clearTimeout(advanceTimer);
                 advanceTimer = null;
             }
 
-            // Hide all slides
-            document.querySelectorAll('.slide').forEach(s => s.style.display = 'none');
-
             if (items.length === 0) return;
 
             const item = items[index];
-            const slide = document.getElementById(`slide-${index}`);
-            if (!slide) return;
+            const nextSlide = document.getElementById(`slide-${index}`);
+            if (!nextSlide) return;
 
-            // Show this slide
-            slide.style.display = 'block';
+            // Fade out all slides, fade in the new one
+            document.querySelectorAll('.slide').forEach(s => s.classList.remove('active'));
+            nextSlide.classList.add('active');
 
             if (item.type === 'video') {
-                // Videos advance when they end via the 'ended' event listener
-                // Just make sure the video plays from the start
-                const video = slide.querySelector('video');
+                // Reset and play video from the start
+                const video = nextSlide.querySelector('video');
                 if (video) {
                     video.currentTime = 0;
                     video.play();
                 }
             } else {
-                // Images and URLs advance after duration_secs
+                // Advance after duration — wait for the fade to finish first (0.8s)
+                // so the timer starts when the slide is fully visible
                 const duration = (item.duration_secs || 10) * 1000;
-                advanceTimer = setTimeout(advance, duration);
+                advanceTimer = setTimeout(advance, duration + 800);
             }
         }
 

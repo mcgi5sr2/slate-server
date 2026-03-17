@@ -8,19 +8,48 @@
     <style>
         /* Drag and drop styles */
         .item[draggable="true"] { cursor: grab; }
-        .item.drag-over { border: 2px dashed #0066cc; background: #e8f0ff; }
+        .item.drag-over { border: 2px dashed var(--drag-over-border); background: var(--drag-over-bg); }
         .item.dragging { opacity: 0.4; }
 
-        /* Inline duration editor */
-        .item-duration-edit {
-            width: 52px;
-            padding: 2px 4px;
-            border: 1px solid #ccc;
+        /* Duration stepper — hide native number input arrows */
+        .stepper {
+            display: flex;
+            align-items: center;
+            gap: 0;
+            border: 1px solid var(--border);
             border-radius: 4px;
-            font-size: 0.85em;
-            text-align: center;
+            overflow: hidden;
+            flex-shrink: 0;
         }
-        .duration-unit { font-size: 0.8em; color: #888; margin-left: 2px; }
+        .stepper button {
+            border: none;
+            border-radius: 0;
+            padding: 2px 7px;
+            font-size: 1em;
+            line-height: 1;
+            background: var(--surface-alt);
+            color: var(--text);
+            min-width: 26px;
+        }
+        .stepper button:hover { background: var(--accent); color: white; }
+        .stepper input[type="number"] {
+            width: 44px;
+            border: none;
+            border-left: 1px solid var(--border);
+            border-right: 1px solid var(--border);
+            border-radius: 0;
+            text-align: center;
+            font-size: 0.85em;
+            padding: 2px 0;
+            -moz-appearance: textfield;
+            appearance: textfield; /* hide native spinner */
+        }
+        .stepper input[type="number"]::-webkit-inner-spin-button,
+        .stepper input[type="number"]::-webkit-outer-spin-button {
+            -webkit-appearance: none;
+            appearance: none;
+        }
+        .duration-unit { font-size: 0.8em; color: var(--text-muted); margin-left: 4px; flex-shrink: 0; }
     </style>
 </head>
 <body>
@@ -56,16 +85,18 @@
             <input type="number" id="item-duration" value="10" min="1">
         </div>
 
-        <!-- Action bar — left to right flow: upload → url → add & save -->
-        <div style="display:flex; gap:8px; align-items:flex-end; flex-wrap:wrap; margin-top:10px;">
+        <!-- Two paths: upload a file, or add a URL directly -->
+        <div style="display:flex; gap:16px; flex-wrap:wrap; margin-top:10px;">
 
-            <!-- Step 1: upload a file -->
-            <div class="field" style="margin:0;">
-                <label>1. Upload file</label>
+            <!-- Path A: upload a file and add in one click -->
+            <div class="field" style="margin:0; flex:1; min-width:200px;">
+                <label>Upload &amp; Add file</label>
                 <div style="display:flex; gap:4px;">
-                    <input type="text" id="upload-name" placeholder="name (no extension)">
-                    <input type="file" id="upload-file">
-                    <button class="secondary" onclick="doUpload()">Upload File</button>
+                    <input type="text" id="upload-name" placeholder="name (no extension)" style="flex:1;">
+                    <!-- Hidden file input — triggered by the button below -->
+                    <input type="file" id="upload-file" style="display:none;" onchange="updateFileLabel()">
+                    <button class="secondary" onclick="document.getElementById('upload-file').click()"><span id="file-label">Choose file</span></button>
+                    <button class="primary" onclick="uploadAndAdd()">Upload &amp; Add</button>
                 </div>
                 <!-- Progress bar — shown during upload, hidden otherwise -->
                 <div class="progress-bar-wrap" id="upload-progress-wrap">
@@ -73,16 +104,13 @@
                 </div>
             </div>
 
-            <!-- Step 2: URL field — auto-filled by upload, or type manually -->
-            <div class="field" style="margin:0;">
-                <label>2. URL</label>
-                <input type="text" id="item-url" placeholder="">
-            </div>
-
-            <!-- Step 3: add to playlist and save in one click -->
-            <div class="field" style="margin:0;">
-                <label>&nbsp;</label>
-                <button class="primary" onclick="addAndSave()">3. Add &amp; Save</button>
+            <!-- Path B: manually enter a URL (e.g. Grafana dashboard) -->
+            <div class="field" style="margin:0; flex:1; min-width:200px;">
+                <label>Add URL directly</label>
+                <div style="display:flex; gap:4px;">
+                    <input type="text" id="item-url" placeholder="" style="flex:1;">
+                    <button class="primary" onclick="addAndSave()">Add &amp; Save</button>
+                </div>
             </div>
 
         </div>
@@ -131,12 +159,15 @@
                     ${itemTypeBadge(item.type)}
                     <span class="item-url">${item.url || ''}</span>
                     ${item.type !== 'video' ? `
-                        <input class="item-duration-edit"
-                               type="number"
-                               value="${item.duration_secs || 10}"
-                               min="1"
-                               title="Duration in seconds"
-                               onchange="updateDuration(${index}, this.value)">
+                        <div class="stepper">
+                            <button onclick="stepDuration(${index}, -5)">−</button>
+                            <input type="number"
+                                   value="${item.duration_secs || 10}"
+                                   min="1"
+                                   title="Duration in seconds"
+                                   onchange="updateDuration(${index}, this.value)">
+                            <button onclick="stepDuration(${index}, 5)">+</button>
+                        </div>
                         <span class="duration-unit">s</span>
                     ` : '<span class="item-duration">auto</span>'}
                     <button class="danger" onclick="removeAndSave(${index})">Remove</button>
@@ -189,6 +220,18 @@
 
         // ── Inline duration edit ──────────────────────────────────────────────
 
+        // Step duration by a delta (e.g. +5 or -5 seconds)
+        async function stepDuration(index, delta) {
+            const current = items[index].duration_secs || 10;
+            const next = Math.max(1, current + delta);
+            items[index].duration_secs = next;
+            // Update the input value directly without re-rendering the whole list
+            const input = document.querySelector(`#slide-item-${index} input[type="number"]`);
+            if (input) input.value = next;
+            renderPlaylist();
+            await persistPlaylist();
+        }
+
         async function updateDuration(index, value) {
             const secs = parseInt(value);
             if (isNaN(secs) || secs < 1) return;
@@ -217,7 +260,15 @@
                 type === 'video' ? 'none' : 'block';
         }
 
-        async function doUpload() {
+        // Update the file button label when a file is selected
+        function updateFileLabel() {
+            const fileInput = document.getElementById('upload-file');
+            const label = document.getElementById('file-label');
+            label.textContent = fileInput.files[0] ? fileInput.files[0].name : 'Choose file';
+        }
+
+        // Upload a file and immediately add it to the playlist
+        async function uploadAndAdd() {
             const name = document.getElementById('upload-name').value.trim();
             const fileInput = document.getElementById('upload-file');
             const file = fileInput.files[0];
@@ -228,22 +279,33 @@
             }
 
             const url = await uploadFile(locationId, name, file);
-            if (url) {
-                document.getElementById('item-url').value = url;
-                document.getElementById('upload-name').value = '';
-                fileInput.value = '';
-            } else {
+            if (!url) {
                 alert('Upload failed.');
+                return;
             }
+
+            document.getElementById('upload-name').value = '';
+            fileInput.value = '';
+            document.getElementById('file-label').textContent = 'Choose file';
+
+            const type = document.getElementById('item-type').value;
+            const duration = parseInt(document.getElementById('item-duration').value);
+            const item = { type, url };
+            if (type !== 'video') item.duration_secs = duration;
+
+            items.push(item);
+            renderPlaylist();
+            await persistPlaylist();
         }
 
+        // Add a manually entered URL to the playlist and save
         async function addAndSave() {
             const type = document.getElementById('item-type').value;
             const url = document.getElementById('item-url').value.trim();
             const duration = parseInt(document.getElementById('item-duration').value);
 
             if (!url) {
-                alert('Please enter a URL or upload a file first.');
+                alert('Please enter a URL.');
                 return;
             }
 
