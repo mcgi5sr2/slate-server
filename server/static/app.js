@@ -8,43 +8,35 @@ const API = '';
 
 // Fetch all locations from the server and render them into the #locations div
 async function loadLocations() {
-    // fetch() makes an HTTP request and returns a Promise
-    // await pauses until the response arrives
     const res = await fetch(`${API}/api/locations`);
-
-    // Parse the JSON body into a JS array
     const locations = await res.json();
-
-    // Get the container div from the HTML
     const container = document.getElementById('locations');
 
-    // If there are no locations, show a message
     if (locations.length === 0) {
         container.innerHTML = '<p>No locations yet. Add one below.</p>';
         return;
     }
 
-    // Build the HTML for each location and join into one string
-    // map() transforms each item in the array into an HTML string
+    // Build a row for each location including:
+    // - link to playlist editor
+    // - the id slug in monospace
+    // - a direct kiosk view link
+    // - delete button
     container.innerHTML = locations.map(loc => `
         <div class="location">
-            <!-- Clicking the name goes to the playlist editor for this location -->
             <a href="playlist.html?id=${loc.id}">${loc.name}</a>
-            <span>${loc.id}</span>
-            <!-- onclick calls deleteLocation() with this location's id -->
+            <span class="location-id">${loc.id}</span>
+            <a class="kiosk-link" href="kiosk.html?id=${loc.id}" target="_blank">▶ Kiosk view</a>
             <button class="danger" onclick="deleteLocation('${loc.id}')">Delete</button>
         </div>
     `).join('');
 }
 
 // Create a new location by POSTing to the API
-// Returns the fetch response so the caller can check .ok
 async function createLocation(id, name) {
     const res = await fetch(`${API}/api/locations`, {
         method: 'POST',
-        // Tell the server we're sending JSON
         headers: { 'Content-Type': 'application/json' },
-        // Convert the JS object to a JSON string for the request body
         body: JSON.stringify({ id, name }),
     });
     return res;
@@ -52,18 +44,14 @@ async function createLocation(id, name) {
 
 // Delete a location by its id
 async function deleteLocation(id) {
-    // Ask the user to confirm before deleting
     if (!confirm(`Delete location "${id}"? This will also delete its playlist.`)) return;
-
     await fetch(`${API}/api/locations/${id}`, { method: 'DELETE' });
-
-    // Reload the list after deletion
     loadLocations();
 }
 
 // ─── Playlists ────────────────────────────────────────────────────────────────
 
-// Fetch the playlist for a location and render it
+// Fetch the playlist for a location
 async function loadPlaylist(locationId) {
     const res = await fetch(`${API}/api/playlist/${locationId}`);
     const playlist = await res.json();
@@ -82,24 +70,68 @@ async function savePlaylist(locationId, items) {
 
 // ─── File Upload ──────────────────────────────────────────────────────────────
 
-// Upload a file with a given name slug
-// Returns the URL of the uploaded file, or null on failure
-async function uploadFile(name, file) {
-    // FormData is the browser's way of sending multipart form data
+// Upload a file with a given location and name slug.
+// Shows a progress bar while uploading.
+// Returns the public URL of the uploaded file, or null on failure.
+async function uploadFile(locationId, name, file) {
     const form = new FormData();
+    form.append('location_id', locationId);
     form.append('name', name);
     form.append('file', file);
 
-    const res = await fetch(`${API}/api/upload`, {
-        method: 'POST',
-        // Note: do NOT set Content-Type header here — the browser sets it
-        // automatically with the correct multipart boundary
-        body: form,
+    // Show the progress bar
+    const wrap = document.getElementById('upload-progress-wrap');
+    const fill = document.getElementById('upload-progress-fill');
+    if (wrap) wrap.style.display = 'block';
+    if (fill) fill.style.width = '0%';
+
+    // We use XMLHttpRequest instead of fetch here because fetch doesn't
+    // support upload progress events. XHR lets us track bytes sent.
+    return new Promise((resolve) => {
+        const xhr = new XMLHttpRequest();
+
+        // Update the progress bar as bytes are sent
+        xhr.upload.addEventListener('progress', (e) => {
+            if (e.lengthComputable && fill) {
+                const pct = Math.round((e.loaded / e.total) * 100);
+                fill.style.width = pct + '%';
+            }
+        });
+
+        xhr.addEventListener('load', () => {
+            // Hide the progress bar when done
+            if (wrap) wrap.style.display = 'none';
+
+            if (xhr.status === 200) {
+                const data = JSON.parse(xhr.responseText);
+                resolve(data.url);
+            } else {
+                resolve(null);
+            }
+        });
+
+        xhr.addEventListener('error', () => {
+            if (wrap) wrap.style.display = 'none';
+            resolve(null);
+        });
+
+        xhr.open('POST', `${API}/api/upload`);
+        xhr.send(form);
     });
+}
 
-    if (!res.ok) return null;
+// ─── Thumbnail helper ─────────────────────────────────────────────────────────
 
-    const data = await res.json();
-    // data.url is the path like "/uploads/my-image.jpg"
-    return data.url;
+// Return an HTML string for a thumbnail or placeholder based on item type and url
+function itemThumb(item) {
+    if (item.type === 'image' && item.url) {
+        return `<img class="item-thumb" src="${item.url}" alt="" loading="lazy">`;
+    }
+    const label = item.type === 'video' ? '▶ video' : '🌐 url';
+    return `<div class="item-thumb-placeholder">${label}</div>`;
+}
+
+// Return an HTML badge for an item type with syntax-highlight style colouring
+function itemTypeBadge(type) {
+    return `<span class="item-type item-type-${type}">${type}</span>`;
 }

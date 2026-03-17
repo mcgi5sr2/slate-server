@@ -4,28 +4,27 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Slate Show — Playlist Editor</title>
+    <link rel="stylesheet" href="style.css">
     <style>
-        body { font-family: sans-serif; max-width: 800px; margin: 40px auto; padding: 0 20px; }
-        h1 { border-bottom: 2px solid #333; padding-bottom: 10px; }
-        .item { display: flex; align-items: center; gap: 10px; padding: 10px; border: 1px solid #ddd; margin: 8px 0; border-radius: 4px; }
-        .item-type { background: #eee; padding: 2px 8px; border-radius: 10px; font-size: 0.85em; font-weight: bold; }
-        .item-url { flex: 1; color: #666; font-size: 0.9em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        button { cursor: pointer; padding: 6px 12px; border-radius: 4px; border: 1px solid #ccc; }
-        button.danger { background: #cc0000; color: white; border-color: #cc0000; }
-        button.primary { background: #0066cc; color: white; border-color: #0066cc; }
-        button.secondary { background: #fff; color: #333; }
-        select, input { padding: 6px 10px; border: 1px solid #ccc; border-radius: 4px; }
-        .add-form { border: 1px solid #ddd; border-radius: 4px; padding: 16px; margin-top: 20px; }
-        .add-form h3 { margin-top: 0; }
-        .field { display: flex; flex-direction: column; gap: 4px; margin-bottom: 10px; }
-        .field label { font-size: 0.9em; font-weight: bold; }
-        .actions { margin-top: 20px; display: flex; gap: 10px; }
-        #status { color: green; margin-top: 10px; }
-        #error { color: red; margin-top: 10px; }
-        a.back { color: #0066cc; text-decoration: none; }
+        /* Drag and drop styles */
+        .item[draggable="true"] { cursor: grab; }
+        .item.drag-over { border: 2px dashed #0066cc; background: #e8f0ff; }
+        .item.dragging { opacity: 0.4; }
+
+        /* Inline duration editor */
+        .item-duration-edit {
+            width: 52px;
+            padding: 2px 4px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 0.85em;
+            text-align: center;
+        }
+        .duration-unit { font-size: 0.8em; color: #888; margin-left: 2px; }
     </style>
 </head>
 <body>
+    <button id="theme-toggle" onclick="cycleTheme()">🌙 Dark</button>
     <a class="back" href="index.html">← Back to locations</a>
     <h1 id="page-title">Playlist Editor</h1>
 
@@ -33,7 +32,7 @@
     <div id="playlist"></div>
 
     <div class="actions">
-        <button class="primary" onclick="saveCurrent()">Save Playlist</button>
+        <button class="danger" onclick="clearPlaylist()">Clear Playlist</button>
     </div>
     <div id="status"></div>
     <div id="error"></div>
@@ -44,18 +43,11 @@
 
         <div class="field">
             <label for="item-type">Type</label>
-            <!-- When the type changes, show/hide the relevant fields -->
             <select id="item-type" onchange="onTypeChange()">
                 <option value="image">Image</option>
                 <option value="video">Video</option>
                 <option value="url">Web URL</option>
             </select>
-        </div>
-
-        <!-- URL field — shown for image, video, url types -->
-        <div class="field" id="field-url">
-            <label for="item-url">URL or uploaded file path</label>
-            <input type="text" id="item-url" placeholder="/uploads/my-image.jpg">
         </div>
 
         <!-- Duration field — shown for image and url types, not video -->
@@ -64,106 +56,167 @@
             <input type="number" id="item-duration" value="10" min="1">
         </div>
 
-        <!-- File upload helper — lets you upload a file and auto-fill the URL -->
-        <div class="field">
-            <label for="upload-name">Upload a file — name without extension (e.g. logo)</label>
-            <div style="display:flex; gap:8px;">
-                <input type="text" id="upload-name" placeholder="name slug (e.g. logo)">
-                <input type="file" id="upload-file">
-                <button class="secondary" onclick="doUpload()">Upload</button>
-            </div>
-        </div>
+        <!-- Action bar — left to right flow: upload → url → add & save -->
+        <div style="display:flex; gap:8px; align-items:flex-end; flex-wrap:wrap; margin-top:10px;">
 
-        <button class="primary" onclick="addItem()">Add to Playlist</button>
+            <!-- Step 1: upload a file -->
+            <div class="field" style="margin:0;">
+                <label>1. Upload file</label>
+                <div style="display:flex; gap:4px;">
+                    <input type="text" id="upload-name" placeholder="name (no extension)">
+                    <input type="file" id="upload-file">
+                    <button class="secondary" onclick="doUpload()">Upload File</button>
+                </div>
+                <!-- Progress bar — shown during upload, hidden otherwise -->
+                <div class="progress-bar-wrap" id="upload-progress-wrap">
+                    <div class="progress-bar-fill" id="upload-progress-fill"></div>
+                </div>
+            </div>
+
+            <!-- Step 2: URL field — auto-filled by upload, or type manually -->
+            <div class="field" style="margin:0;">
+                <label>2. URL</label>
+                <input type="text" id="item-url" placeholder="">
+            </div>
+
+            <!-- Step 3: add to playlist and save in one click -->
+            <div class="field" style="margin:0;">
+                <label>&nbsp;</label>
+                <button class="primary" onclick="addAndSave()">3. Add &amp; Save</button>
+            </div>
+
+        </div>
     </div>
 
     <script src="app.js"></script>
+    <script src="theme.js"></script>
     <script>
-        // Read the location id from the URL query string
-        // e.g. playlist.html?id=reception → locationId = "reception"
         const params = new URLSearchParams(window.location.search);
         const locationId = params.get('id');
 
-        // The current playlist items as a JS array — we edit this in memory
-        // and only save to the server when "Save Playlist" is clicked
+        document.getElementById('item-url').placeholder = `/uploads/${locationId}/my-image.jpg`;
+
         let items = [];
 
-        // On page load, set the title and fetch the current playlist
+        // Index being dragged — used by drag-and-drop handlers
+        let dragSrcIndex = null;
+
         document.getElementById('page-title').textContent = `Playlist — ${locationId}`;
         loadCurrent();
 
-        // Fetch the current playlist from the server and render it
         async function loadCurrent() {
             const playlist = await loadPlaylist(locationId);
             items = playlist.items;
             renderPlaylist();
         }
 
-        // Render the current items array into the #playlist div
+        // Render playlist items with thumbnails, inline duration edit, and drag handles
         function renderPlaylist() {
             const container = document.getElementById('playlist');
             if (items.length === 0) {
                 container.innerHTML = '<p>No items yet. Add one below.</p>';
                 return;
             }
+
             container.innerHTML = items.map((item, index) => `
-                <div class="item">
-                    <span class="item-type">${item.type}</span>
+                <div class="item"
+                     draggable="true"
+                     data-index="${index}"
+                     ondragstart="onDragStart(event, ${index})"
+                     ondragover="onDragOver(event)"
+                     ondragleave="onDragLeave(event)"
+                     ondrop="onDrop(event, ${index})"
+                     ondragend="onDragEnd(event)">
+                    ${itemThumb(item)}
+                    ${itemTypeBadge(item.type)}
                     <span class="item-url">${item.url || ''}</span>
-                    <span>${item.duration_secs ? item.duration_secs + 's' : ''}</span>
-                    <!-- Move up/down buttons for reordering -->
-                    <button class="secondary" onclick="moveItem(${index}, -1)" ${index === 0 ? 'disabled' : ''}>↑</button>
-                    <button class="secondary" onclick="moveItem(${index}, 1)" ${index === items.length - 1 ? 'disabled' : ''}>↓</button>
-                    <button class="danger" onclick="removeItem(${index})">Remove</button>
+                    ${item.type !== 'video' ? `
+                        <input class="item-duration-edit"
+                               type="number"
+                               value="${item.duration_secs || 10}"
+                               min="1"
+                               title="Duration in seconds"
+                               onchange="updateDuration(${index}, this.value)">
+                        <span class="duration-unit">s</span>
+                    ` : '<span class="item-duration">auto</span>'}
+                    <button class="danger" onclick="removeAndSave(${index})">Remove</button>
                 </div>
             `).join('');
         }
 
-        // Move an item up (-1) or down (+1) in the list
-        function moveItem(index, direction) {
-            const newIndex = index + direction;
-            // Swap the two items
-            [items[index], items[newIndex]] = [items[newIndex], items[index]];
-            renderPlaylist();
+        // ── Drag and drop ─────────────────────────────────────────────────────
+
+        function onDragStart(e, index) {
+            dragSrcIndex = index;
+            // Add a dragging class to fade the item being dragged
+            e.currentTarget.classList.add('dragging');
+            // Required for Firefox
+            e.dataTransfer.effectAllowed = 'move';
         }
 
-        // Remove an item from the list by index
-        function removeItem(index) {
+        function onDragOver(e, index) {
+            // Prevent the default which would cancel the drop
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+            e.currentTarget.classList.add('drag-over');
+        }
+
+        function onDragLeave(e) {
+            e.currentTarget.classList.remove('drag-over');
+        }
+
+        async function onDrop(e, dropIndex) {
+            e.preventDefault();
+            e.currentTarget.classList.remove('drag-over');
+
+            if (dragSrcIndex === null || dragSrcIndex === dropIndex) return;
+
+            // Remove the dragged item and insert it at the drop position
+            const [moved] = items.splice(dragSrcIndex, 1);
+            items.splice(dropIndex, 0, moved);
+
+            renderPlaylist();
+            await persistPlaylist();
+        }
+
+        function onDragEnd(e) {
+            // Clean up dragging styles in case dragover didn't fire on all elements
+            document.querySelectorAll('.item').forEach(el => {
+                el.classList.remove('dragging', 'drag-over');
+            });
+            dragSrcIndex = null;
+        }
+
+        // ── Inline duration edit ──────────────────────────────────────────────
+
+        async function updateDuration(index, value) {
+            const secs = parseInt(value);
+            if (isNaN(secs) || secs < 1) return;
+            items[index].duration_secs = secs;
+            await persistPlaylist();
+        }
+
+        // ── Playlist actions ──────────────────────────────────────────────────
+
+        async function removeAndSave(index) {
             items.splice(index, 1);
             renderPlaylist();
+            await persistPlaylist();
         }
 
-        // Show/hide the duration field based on item type
-        // Video plays to its natural end so no duration needed
+        async function clearPlaylist() {
+            if (!confirm('Clear the entire playlist?')) return;
+            items = [];
+            renderPlaylist();
+            await persistPlaylist();
+        }
+
         function onTypeChange() {
             const type = document.getElementById('item-type').value;
             document.getElementById('field-duration').style.display =
                 type === 'video' ? 'none' : 'block';
         }
 
-        // Add a new item to the in-memory list
-        function addItem() {
-            const type = document.getElementById('item-type').value;
-            const url = document.getElementById('item-url').value.trim();
-            const duration = parseInt(document.getElementById('item-duration').value);
-
-            if (!url) {
-                alert('Please enter a URL or upload a file first.');
-                return;
-            }
-
-            // Build the item object based on type
-            const item = { type, url };
-            if (type !== 'video') item.duration_secs = duration;
-
-            items.push(item);
-            renderPlaylist();
-
-            // Clear the URL field ready for the next item
-            document.getElementById('item-url').value = '';
-        }
-
-        // Upload a file using the upload helper fields, then fill in the URL field
         async function doUpload() {
             const name = document.getElementById('upload-name').value.trim();
             const fileInput = document.getElementById('upload-file');
@@ -174,9 +227,8 @@
                 return;
             }
 
-            const url = await uploadFile(name, file);
+            const url = await uploadFile(locationId, name, file);
             if (url) {
-                // Auto-fill the URL field with the uploaded file's path
                 document.getElementById('item-url').value = url;
                 document.getElementById('upload-name').value = '';
                 fileInput.value = '';
@@ -185,13 +237,31 @@
             }
         }
 
-        // Save the current items array to the server
-        async function saveCurrent() {
+        async function addAndSave() {
+            const type = document.getElementById('item-type').value;
+            const url = document.getElementById('item-url').value.trim();
+            const duration = parseInt(document.getElementById('item-duration').value);
+
+            if (!url) {
+                alert('Please enter a URL or upload a file first.');
+                return;
+            }
+
+            const item = { type, url };
+            if (type !== 'video') item.duration_secs = duration;
+
+            items.push(item);
+            renderPlaylist();
+            document.getElementById('item-url').value = '';
+
+            await persistPlaylist();
+        }
+
+        async function persistPlaylist() {
             const res = await savePlaylist(locationId, items);
             if (res.ok) {
                 document.getElementById('status').textContent = 'Saved!';
                 document.getElementById('error').textContent = '';
-                // Clear the status message after 2 seconds
                 setTimeout(() => document.getElementById('status').textContent = '', 2000);
             } else {
                 document.getElementById('error').textContent = 'Save failed.';

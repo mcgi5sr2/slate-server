@@ -1,0 +1,291 @@
+/* style.css — shared styles for Slate Show admin UI */
+
+/* ── CSS Custom Properties (theme variables) ─────────────────────────────────
+   Default is light theme. Dark theme is applied via [data-theme="dark"] on <body>.
+   All colours reference these variables so swapping themes is instant.          */
+
+:root {
+    --bg:           #f0f8ff;   /* sky blue page background */
+    --surface:      #ffffff;   /* card/form surface */
+    --surface-alt:  #e8f4fd;   /* slightly tinted surface */
+    --border:       #b0d0e8;   /* borders */
+    --text:         #1a2a3a;   /* primary text */
+    --text-muted:   #5a7a9a;   /* secondary/muted text */
+    --accent:       #0077cc;   /* primary accent (buttons, links) */
+    --accent-hover: #0055aa;   /* accent hover */
+    --danger:       #cc0000;
+    --danger-hover: #aa0000;
+    --success:      #007700;
+    --progress-bg:  #b0d0e8;
+    --thumb-bg:     #d0e8f8;
+    --drag-over-bg: #dbeeff;
+    --drag-over-border: #0077cc;
+    /* item type badge colours */
+    --tag-image:    #0077cc;
+    --tag-video:    #cc6600;
+    --tag-url:      #7700cc;
+    --tag-text:     #ffffff;
+}
+
+[data-theme="dark"] {
+    --bg:           #0a1628;   /* deep engineering blue background */
+    --surface:      #112240;   /* card/form surface */
+    --surface-alt:  #0d1b33;   /* slightly darker surface */
+    --border:       #1e3a5f;   /* borders */
+    --text:         #c8dff0;   /* light blue-white text */
+    --text-muted:   #6a9bbf;   /* muted text */
+    --accent:       #2a9fd6;   /* bright blue accent */
+    --accent-hover: #1a8fc6;
+    --danger:       #e05050;
+    --danger-hover: #c03030;
+    --success:      #40c080;
+    --progress-bg:  #1e3a5f;
+    --thumb-bg:     #1e3a5f;
+    --drag-over-bg: #0d2a4a;
+    --drag-over-border: #2a9fd6;
+    --tag-image:    #2a9fd6;
+    --tag-video:    #fd971f;
+    --tag-url:      #ae81ff;
+    --tag-text:     #ffffff;
+}
+
+[data-theme="monokai"] {
+    --bg:           #272822;   /* monokai background */
+    --surface:      #3e3d32;   /* slightly lighter surface */
+    --surface-alt:  #49483e;   /* hover/alt surface */
+    --border:       #75715e;   /* comment brown borders */
+    --text:         #f8f8f2;   /* monokai foreground */
+    --text-muted:   #75715e;   /* comment brown */
+    --accent:       #a6e22e;   /* monokai green */
+    --accent-hover: #8ec21e;
+    --danger:       #f92672;   /* monokai pink */
+    --danger-hover: #d9064f;
+    --success:      #a6e22e;   /* monokai green */
+    --progress-bg:  #49483e;
+    --thumb-bg:     #49483e;
+    --drag-over-bg: #3a3a2a;
+    --drag-over-border: #a6e22e;
+    /* syntax-highlight style type badges */
+    --tag-image:    #66d9e8;   /* cyan — like a type keyword */
+    --tag-video:    #fd971f;   /* orange — like a function name */
+    --tag-url:      #ae81ff;   /* purple — like a string/value */
+    --tag-text:     #272822;   /* dark text on bright badge */
+}
+
+/* ── Reset and base ──────────────────────────────────────────────────────────*/
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+    font-family: sans-serif;
+    max-width: 900px;
+    margin: 40px auto;
+    padding: 0 20px;
+    color: var(--text);
+    background: var(--bg);
+    transition: background 0.2s, color 0.2s;
+}
+
+h1 {
+    border-bottom: 2px solid var(--border);
+    padding-bottom: 10px;
+    margin-bottom: 20px;
+}
+
+h2 { margin-top: 30px; margin-bottom: 10px; }
+h3 { margin-bottom: 12px; }
+
+/* ── Theme toggle button ─────────────────────────────────────────────────────*/
+
+#theme-toggle {
+    position: fixed;
+    top: 14px;
+    right: 20px;
+    padding: 4px 10px;
+    border-radius: 20px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text);
+    cursor: pointer;
+    font-size: 0.85em;
+    z-index: 100;
+}
+#theme-toggle:hover { background: var(--surface-alt); }
+
+/* ── Links ───────────────────────────────────────────────────────────────────*/
+
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a.back { display: inline-block; margin-bottom: 16px; }
+
+/* ── Buttons ─────────────────────────────────────────────────────────────────*/
+
+button {
+    cursor: pointer;
+    padding: 6px 12px;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text);
+    font-size: 0.95em;
+    transition: background 0.15s;
+}
+button:hover { background: var(--surface-alt); }
+button.primary { background: var(--accent); color: white; border-color: var(--accent); }
+button.primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
+button.danger { background: var(--danger); color: white; border-color: var(--danger); }
+button.danger:hover { background: var(--danger-hover); border-color: var(--danger-hover); }
+button:disabled { opacity: 0.4; cursor: default; }
+
+/* ── Form elements ───────────────────────────────────────────────────────────*/
+
+select,
+input[type="text"],
+input[type="number"] {
+    padding: 6px 10px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    font-size: 0.95em;
+    background: var(--surface);
+    color: var(--text);
+}
+
+/* ── Field layout ────────────────────────────────────────────────────────────*/
+
+.field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-bottom: 10px;
+}
+.field label { font-size: 0.9em; font-weight: bold; color: var(--text-muted); }
+
+/* ── Status messages ─────────────────────────────────────────────────────────*/
+
+#status { color: var(--success); margin-top: 10px; min-height: 1.2em; }
+#error  { color: var(--danger);  margin-top: 10px; min-height: 1.2em; }
+
+/* ── Action bar ──────────────────────────────────────────────────────────────*/
+
+.actions {
+    margin-top: 16px;
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+/* ── Location list (index.html) ──────────────────────────────────────────────*/
+
+.location {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    border: 1px solid var(--border);
+    margin: 8px 0;
+    border-radius: 4px;
+    background: var(--surface);
+}
+.location a { flex: 1; font-weight: bold; }
+.location .location-id { color: var(--text-muted); font-size: 0.85em; font-family: monospace; }
+.location .kiosk-link  { font-size: 0.85em; color: var(--accent); }
+
+/* ── Playlist item list (playlist.html) ──────────────────────────────────────*/
+
+.item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px;
+    border: 1px solid var(--border);
+    margin: 8px 0;
+    border-radius: 4px;
+    background: var(--surface);
+}
+.item[draggable="true"] { cursor: grab; }
+.item.drag-over  { border: 2px dashed var(--drag-over-border); background: var(--drag-over-bg); }
+.item.dragging   { opacity: 0.4; }
+
+.item-thumb {
+    width: 60px;
+    height: 40px;
+    object-fit: cover;
+    border-radius: 3px;
+    background: var(--thumb-bg);
+    flex-shrink: 0;
+}
+.item-thumb-placeholder {
+    width: 60px;
+    height: 40px;
+    border-radius: 3px;
+    background: var(--thumb-bg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.7em;
+    color: var(--text-muted);
+    flex-shrink: 0;
+}
+/* Type badges — each item type gets its own colour like syntax highlighting */
+.item-type {
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 0.8em;
+    font-weight: bold;
+    flex-shrink: 0;
+    color: var(--tag-text);
+}
+.item-type-image { background: var(--tag-image); }
+.item-type-video { background: var(--tag-video); }
+.item-type-url   { background: var(--tag-url); }
+.item-url {
+    flex: 1;
+    color: var(--text-muted);
+    font-size: 0.85em;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.item-duration {
+    color: var(--text-muted);
+    font-size: 0.85em;
+    flex-shrink: 0;
+}
+.item-duration-edit {
+    width: 52px;
+    padding: 2px 4px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    font-size: 0.85em;
+    text-align: center;
+    background: var(--surface);
+    color: var(--text);
+}
+.duration-unit { font-size: 0.8em; color: var(--text-muted); margin-left: 2px; }
+
+/* ── Add item form ───────────────────────────────────────────────────────────*/
+
+.add-form {
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 16px;
+    margin-top: 24px;
+    background: var(--surface);
+}
+
+/* ── Upload progress bar ─────────────────────────────────────────────────────*/
+
+.progress-bar-wrap {
+    display: none;
+    height: 6px;
+    background: var(--progress-bg);
+    border-radius: 3px;
+    margin-top: 6px;
+    overflow: hidden;
+}
+.progress-bar-fill {
+    height: 100%;
+    background: var(--accent);
+    width: 0%;
+    transition: width 0.2s;
+}

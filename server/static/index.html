@@ -4,37 +4,26 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Slate Show — Admin</title>
-    <style>
-        /* Simple clean styling, no framework needed */
-        body { font-family: sans-serif; max-width: 800px; margin: 40px auto; padding: 0 20px; }
-        h1 { border-bottom: 2px solid #333; padding-bottom: 10px; }
-        .location { display: flex; align-items: center; gap: 10px; padding: 10px; border: 1px solid #ddd; margin: 8px 0; border-radius: 4px; }
-        .location a { flex: 1; text-decoration: none; color: #0066cc; font-weight: bold; }
-        .location span { color: #666; font-size: 0.9em; }
-        button { cursor: pointer; padding: 6px 12px; border-radius: 4px; border: 1px solid #ccc; }
-        button.danger { background: #cc0000; color: white; border-color: #cc0000; }
-        button.primary { background: #0066cc; color: white; border-color: #0066cc; }
-        form { display: flex; gap: 10px; margin-top: 20px; }
-        input { padding: 6px 10px; border: 1px solid #ccc; border-radius: 4px; flex: 1; }
-        #error { color: red; margin-top: 10px; }
-    </style>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
+    <button id="theme-toggle" onclick="cycleTheme()">🌙 Dark</button>
     <h1>Slate Show — Locations</h1>
 
     <!-- Location list — populated by JS -->
     <div id="locations"></div>
 
     <h2>Add Location</h2>
-    <form id="create-form">
+    <form id="create-form" style="display:flex; gap:10px; margin-top:10px;">
         <input type="text" id="location-id" placeholder="ID (e.g. reception)" required>
-        <input type="text" id="location-name" placeholder="Name (e.g. Reception Desk)" required>
+        <input type="text" id="location-name" placeholder="Name (e.g. Reception Desk)" required style="flex:1;">
         <button type="submit" class="primary">Add</button>
     </form>
     <div id="error"></div>
+    <div id="status"></div>
 
-    <!-- Load our JS — defer means it runs after the HTML is parsed -->
     <script src="app.js"></script>
+    <script src="theme.js"></script>
     <script>
         // When the page loads, fetch and render all locations
         loadLocations();
@@ -53,6 +42,8 @@
                 document.getElementById('location-id').value = '';
                 document.getElementById('location-name').value = '';
                 document.getElementById('error').textContent = '';
+                document.getElementById('status').textContent = 'Location added!';
+                setTimeout(() => document.getElementById('status').textContent = '', 2000);
                 loadLocations();
             } else {
                 document.getElementById('error').textContent = 'Failed to create location.';
