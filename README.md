@@ -7,19 +7,19 @@ A self-hosted digital signage system. Manage content and playlists from a centra
 ## Architecture
 
 ```
-┌─────────────────────────────────────────────────┐
+┌──────────────────────────────────────────────────┐
 │                   Server (k3s VM)                │
 │                                                  │
 │  ┌──────────────┐     ┌────────────────────────┐ │
 │  │  Axum API    │     │  SQLite (metadata)     │ │
-│  │  /api/...    │────▶│  locations             │ │
+│  │  /api/...    │───▶│  locations             │ │
 │  │  /kiosk/...  │     │  playlist_items        │ │
 │  │  /admin/...  │     └────────────────────────┘ │
 │  │  /uploads/.. │     ┌────────────────────────┐ │
 │  └──────────────┘     │  Disk (media files)    │ │
 │                       │  data/uploads/         │ │
 │                       └────────────────────────┘ │
-└─────────────────────────────────────────────────┘
+└──────────────────────────────────────────────────┘
           │                        │
           │ HTTP poll (ETag)        │ HTTP (media files)
           ▼                        ▼
